@@ -93,6 +93,19 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             shs = pc.get_features
     else:
         colors_precomp = override_color
+    # vamos a añadir un bloque de código para colorear
+    # Gaussianas a nuestro antojo antes de mandar a llamar al rasterizador
+    colors_precomp = torch.zeros_like(pc.get_xyz) #same shape: [N, 3]
+    normals = depth_to_normal(viewpoint_camera, pc.get_xyz)
+    #threshold
+    y_threshold = 0.5
+    #tomamos las gaussianas por encima de y_threshold y una dirección normal
+    #para colorearlas
+    condition = pc.get_xyz[:,1] > y_threshold
+    # condition = (pc.get_xyz[:,1] > y_threshold) & (normals[:,1] > 0.8)
+    colors_precomp[condition] = torch.tensor([1.0, 0.0, 0.0], device = colors_precomp.device)
+    #override SH-based coloring
+    shs = None
     
     rendered_image, radii, allmap = rasterizer(
         means3D = means3D,
